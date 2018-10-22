@@ -1,5 +1,5 @@
 # Clean the Chandra X-ray data and export it as a dataset that's nicer to work with.
-# The Chandra data is located in a file called XXX.
+# The Chandra data is located in a file called chandra_GBS_RAW.fits
 
 # Clean the Chandra X-ray data and export it as a dataset that's nicer to work with.
 # The Chandra data is located in a file called XXX.
