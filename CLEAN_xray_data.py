@@ -43,7 +43,7 @@ def modify_x_error(df):
     return(df)
 
 # Filepath of Chandra X-ray Data.
-fp = '/GitHub/GBS_GALEX_analysis/dat/chandra_GBS_RAW.fits'
+fp = 'dat/chandra_GBS_RAW.fits'
 
 # Read in the .fits file through our function which converts it to a pandas DataFrame.
 df = fits_to_dataframe(fp)
