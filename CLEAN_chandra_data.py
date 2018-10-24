@@ -13,6 +13,15 @@ def fits_to_dataframe(fp):
     print('Read in original Chandra .fits file.')
     return(df)
 
+def flag_na(df,remove_rows=False):
+    """Raise a flag if there are NaN or None values in the dataset, and remove rows if True."""
+    df = df.copy()
+    n_bad = sum(np.ravel(df.isnull().values))
+    print('{} bad values in the dataset.')
+    if remove_rows == True:
+        df.dropna()
+    return(df)
+
 def rename_cols(df):
     """Rename the columns to more reasonable names.
     Add 'CX' to each GBS_NAME numeric, so that GBS_NAME reads like 'CX210' or 'CX1092'."""
@@ -45,7 +54,7 @@ fp = 'dat/chandra_GBS_RAW.fits'
 
 # Read in the .fits file through our function which converts it to a pandas DataFrame.
 df = fits_to_dataframe(fp)
-df_clean = df.pipe(rename_cols).pipe(remove_cols).pipe(modify_x_error)
+df_clean = df.pipe(flagna).pipe(rename_cols).pipe(remove_cols).pipe(modify_x_error)
 print('The header of the cleaned dataframe:')
 print(df_clean.head())
 

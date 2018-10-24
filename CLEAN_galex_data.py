@@ -16,6 +16,15 @@ def stack_halves(right,left):
     print('Stacked Galex halfs into whole set.')
     return(glx)
 
+def flag_na(df,remove_rows=False):
+    """Raise a flag if there are NaN or None values in the dataset, and remove rows if True."""
+    df = df.copy()
+    n_bad = sum(np.ravel(df.isnull().values))
+    print('{} bad values in the dataset.')
+    if remove_rows == True:
+        df.dropna()
+    return(df)
+
 def convert_glon(df):
     """Convert longitude values < 360 to negative equivalents where 360 meets 0."""
     df = df.copy()
@@ -88,7 +97,7 @@ df = stack_halves(glx_right,glx_left)
 df.to_csv('dat/galex_RAW.csv')
 
 # Apply each of the cleaning functions to the dataframe and output the header.
-df_clean = df.pipe(convert_glon).pipe(trim).pipe(rename_cols).pipe(remove_duplicates)
+df_clean = df.pipe(flagna).pipe(convert_glon).pipe(trim).pipe(rename_cols).pipe(remove_duplicates)
 print('The header of the cleaned dataframe:')
 print(df_clean.head()
 
