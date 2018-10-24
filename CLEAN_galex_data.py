@@ -11,14 +11,15 @@ import seaborn as sns
 # Due to this split over 360, we need two queries for right and left halves, then we stack.
 
 def stack_halves(right,left):
-    glx = pd.concat([right,left],axis=1)
-    print('Imported Galex halves and stacked.')
+    """Stack the right and left halves of the CasJobs-queried Galex data, vertically."""
+    glx = pd.concat([right,left],axis=0)
+    print('Stacked Galex halfs into whole set.')
     return(glx)
 
 def convert_glon(df):
     """Convert longitude values < 360 to negative equivalents where 360 meets 0."""
     df = df.copy()
-    df.apply(lambda long: long-360 if long =< 360)
+    df.loc[df['glon']<360,'glon'].apply(lambda long: long-360)
     print('Converted longitudes < 360 to negative values.')
     return(df)
 
@@ -28,8 +29,8 @@ def trim(df):
     df = df.copy()
     len_init = len(df)
     long_max,long_min = 3.1, -3.1
-    df = df[(df['glon'] < long_max) & (df['glon'] > -long_min)] # cut longitude.
-    df = df[(df['glat'] > 0.83) % (df['glat'] < -0.83)] # cut latitude by removing middle.
+    df = df[(df['glon'] < long_max) & (df['glon'] > long_min)] # cut longitude.
+    df = df[(df['glat'] > 0.83) | (df['glat'] < -0.83)] # cut latitude by removing middle.
     len_fin = len(df)
     print('Trimmed Galex observations to represent the GBS area, reducing observations from {len_init} to {len_fin} lines.'.format(**locals()))
     return(df)
@@ -44,41 +45,38 @@ def rename_cols(df):
     return(df)
 
 def remove_duplicates(df):
-    """Remove the duplicate observations in the Galex NUV dataset from CasJobs.
-    There are many observations that in-fact represent the same light-source, 
-    but are in different images/surveys. Here we continually add sources to a final list, 
-    each time checking that there does not exist a source "close" to it already, since
-    the NUV density is much lower than 1 per 10" radius around any point."""
-    df = df.copy()
-    # Sort df by DIST_2_FOV as they have the smallest observational errors among duplicates.
-    df.sort('DIST_2_FOV')
-    # Create empty dataframe for our unduplicated observations.
-    real_sources = pd.DataFrame()
-    # Initialize it with the first source.
-    real_sources.append(df.iloc[0])
-
+    """Remove actual duplicate observations by some column.
+    Also remove CLOSE duplicates, observations with very close coordinates (in multiple images).
+    There are MANY of this class, because the entire dataset is comprised of many non-unique sets.
+    Initialize real_sources with the first observation.
+    Loop through the rest of the dataset - if they aren't too close, add them to real_sources.
+    (The NUV density is much lower than 1 per 10" radius around any point)."""
+    
     def is_duplicate(point,df,tol=None):
         """Return a boolean TRUE or FALSE if there exists an observation in df
         that is sufficiently close to 'point'.
-        point: an observation from the Galex dataset.
-        df: a comparison set.
-        tol: distance tolerance to accept or reject a source."""
-        df = df.copy()
+        - point: an observation from the Galex dataset.
+        - df: a comparison set.
+        - tol: distance tolerance to accept or reject a source."""
         # Set tolerance if not None.
         if tol == None: 
             tol = 0.000694444 # degrees, or 2.5 arcseconds.
         # Distance between point and all other observations in df, Euclidean 2-norm.
         distance = np.sqrt((point['GLX_RA']-df['GLX_RA'])**2.0 + (point['GLX_DEC']-df['GLX_DEC'])**2.0)
         # If any are close, return True.
-        if any([dist < tol for dist in distance]):
-            return(True)
-        else:
-            return(False)
-
+        return(any([dist < tol for dist in distance]))
+    
+    df = df.copy()
+    # Sort df by DIST_2_FOV as they have the smallest observational errors among duplicates.
+    df.sort_values(by=['DIST_2_FOV'])
+    # Create empty dataframe for our unduplicated observations.
+    real_sources = pd.DataFrame(columns=df.columns)
+    real_sources = real_sources.append(df.iloc[0])
     # Loop through data, only select those that have no duplicates within tol.
+    print('Unduplicating ... this takes a few moments ...')
     for i, point in df.drop(0,axis=0).iterrows(): # don't do the 0th observation as this is the initial one!
         if is_duplicate(point,real_sources) != True: # if it's unique in the set thus far, no dupe
-            real_sources.append(point)
+            real_sources = real_sources.append(point)
 
     print('Removed duplicate Galex observations, reducing observations from {} to {} lines.'.format(len(df),len(real_sources)))
     return(real_sources)
@@ -92,7 +90,7 @@ df.to_csv('dat/galex_RAW.csv')
 # Apply each of the cleaning functions to the dataframe and output the header.
 df_clean = df.pipe(convert_glon).pipe(trim).pipe(rename_cols).pipe(remove_duplicates)
 print('The header of the cleaned dataframe:')
-print(df_clean.head())
+print(df_clean.head()
 
 # Output filepath of cleaned data.
 fp_out = 'dat/galex_CLEAN.csv'
